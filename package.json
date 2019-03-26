@@ -1,6 +1,6 @@
 {
   "name": "cue-token-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "repository": "https://github.com/illestrater/cue-token-js.git",
   "license": "MIT",
@@ -12,9 +12,7 @@
     "loom-js": "1.38.0",
     "loom-truffle-provider": "^0.11.0",
     "moment": "^2.24.0",
-    "truffle-hdwallet-provider": "^1.0.5"
-  },
-  "devDependencies": {
+    "truffle-hdwallet-provider": "^1.0.5",
     "@babel/core": "^7.0.0-beta.46",
     "@babel/plugin-transform-runtime": "^7.0.0-beta.46",
     "@babel/preset-env": "^7.0.0-beta.46",
@@ -32,5 +30,5 @@
     "webpack": "4.19.1",
     "webpack-cli": "^2.1.4",
     "webpack-dev-server": "^3.1.4"
-  }
+  },
 }
