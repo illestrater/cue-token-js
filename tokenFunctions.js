@@ -1,0 +1,222 @@
+const {
+  Client, NonceTxMiddleware, SignedTxMiddleware, Address,
+  LocalAddress, CryptoUtils, LoomProvider, Contracts
+} = require('loom-js');
+const Web3 = require('web3');
+const BN = require('bn.js');
+const { OfflineWeb3Signer } = require('loom-js/dist/solidity-helpers');
+const CUEToken = require('./abi/CUEToken.json');
+const CUETokenLoom = require('./abi/CUETokenLoom.json');
+const Gateway = require('./Gateway.json');
+
+const TransferGateway = Contracts.TransferGateway;
+const AddressMapper = Contracts.AddressMapper;
+
+const loomGatewayAddress = '0xE754d9518bF4a9C63476891eF9Aa7D91c8236a5d'; // extdev
+const coinMultiplier = new BN(10).pow(new BN(18));
+
+function loadMainnetAccount(environment, privateKey) {
+  const endpoint = environment === 'mainnet' ? 'mainnet' : 'rinkeby';
+  const web3 = new Web3(`https://${ endpoint }.infura.io/v3/4528acb6d57d4bbb8fd0caa204e66464`);
+  const ownerAccount = web3.eth.accounts.privateKeyToAccount(`0x${ privateKey }`);
+  web3.eth.accounts.wallet.add(ownerAccount);
+  return { account: ownerAccount, web3 };
+}
+
+function loadLoomAccount(environment, privateKey) {
+  const publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
+  const client = new Client(
+    environment === 'mainnet' ? 'loomv2b' : 'extdev-plasma-us1',
+    'wss://extdev-plasma-us1.dappchains.com/websocket',
+    'wss://extdev-plasma-us1.dappchains.com/queryws'
+  );
+
+  client.txMiddleware = [
+    new NonceTxMiddleware(publicKey, client),
+    new SignedTxMiddleware(privateKey)
+  ];
+
+  client.on('error', msg => {
+    console.error('PlasmaChain connection error', msg);
+  });
+
+  return {
+    account: LocalAddress.fromPublicKey(publicKey).toString(),
+    web3: new Web3(new LoomProvider(client, privateKey)),
+    client
+  };
+}
+
+async function getLoomCoinContract(web3) {
+  const networkId = await web3.eth.net.getId();
+  return new web3.eth.Contract(
+    CUETokenLoom.abi,
+    CUETokenLoom.networks[networkId].address,
+  );
+}
+
+async function getMainnetGatewayContract(web3) {
+  const networkId = await web3.eth.net.getId();
+  return new web3.eth.Contract(
+    Gateway.abi,
+    Gateway.networks[networkId].address
+  );
+}
+
+async function depositCoinToLoomGateway({
+  client, web3, amount,
+  ownerLoomAddress, ownerMainnetAddress,
+  tokenLoomAddress, tokenMainnetAddress, timeout
+}) {
+  const ownerLoomAddr = Address.fromString(`${ client.chainId }:${ ownerLoomAddress }`);
+  const gatewayContract = await TransferGateway.createAsync(client, ownerLoomAddr);
+
+  const coinContract = await getLoomCoinContract(web3);
+  await coinContract.methods
+    .approve(loomGatewayAddress.toLowerCase(), amount.toString())
+    .send({ from: ownerLoomAddress });
+
+  const ownerMainnetAddr = Address.fromString(`eth:${ ownerMainnetAddress }`);
+  const receiveSignedWithdrawalEvent = new Promise((resolve, reject) => {
+    let timer = setTimeout(
+      () => reject(new Error('Timeout while waiting for withdrawal to be signed')),
+      timeout
+    );
+    const listener = event => {
+      const tokenEthAddr = Address.fromString(`eth:${ tokenMainnetAddress }`);
+      if (
+        event.tokenContract.toString() === tokenEthAddr.toString() &&
+        event.tokenOwner.toString() === ownerMainnetAddr.toString()
+      ) {
+        clearTimeout(timer);
+        timer = null;
+        gatewayContract.removeAllListeners(TransferGateway.EVENT_TOKEN_WITHDRAWAL);
+        resolve(event);
+      }
+    };
+    gatewayContract.on(TransferGateway.EVENT_TOKEN_WITHDRAWAL, listener);
+  });
+
+  const tokenLoomAddr = Address.fromString(`${ client.chainId }:${ tokenLoomAddress }`);
+  await gatewayContract.withdrawERC20Async(amount, tokenLoomAddr, ownerMainnetAddr);
+  console.log(`${ amount.div(coinMultiplier).toString() } tokens deposited to DAppChain Gateway...`);
+
+  const event = await receiveSignedWithdrawalEvent;
+  return CryptoUtils.bytesToHexAddr(event.sig);
+}
+
+async function withdrawCoinFromMainnetGateway({ web3, amount, accountAddress, signature, gas }) {
+  const gatewayContract = await getMainnetGatewayContract(web3);
+  const networkId = await web3.eth.net.getId();
+
+  const gasEstimate = await gatewayContract.methods
+    .withdrawERC20(amount.toString(), signature, CUEToken.networks[networkId].address)
+    .estimateGas({ from: accountAddress, gas });
+
+  if (gasEstimate === gas) {
+    throw new Error('Not enough enough gas, send more.');
+  }
+
+  return gatewayContract.methods
+    .withdrawERC20(amount.toString(), signature, CUEToken.networks[networkId].address)
+    .send({ from: accountAddress, gas: gasEstimate });
+}
+
+async function mapAccounts(environment, ethKey, loomKey) {
+  let client;
+  try {
+    const rinkeby = loadMainnetAccount(environment, ethKey);
+    const loom = loadLoomAccount(environment, loomKey);
+    client = loom.client;
+
+    const signer = new OfflineWeb3Signer(rinkeby.web3, rinkeby.account);
+    const ownerRinkebyAddr = Address.fromString(`eth:${ rinkeby.account.address }`);
+    const ownerLoomAddr = Address.fromString(`${ client.chainId }:${ loom.account }`);
+
+    const mapperContract = await AddressMapper.createAsync(client, ownerLoomAddr);
+    try {
+      const mapping = await mapperContract.getMappingAsync(ownerLoomAddr);
+      console.log(`${ mapping.from.toString() } is already mapped to ${ mapping.to.toString() }`);
+      return;
+    } catch (err) {
+      // assume this means there is no mapping yet, need to fix loom-js not to throw in this case
+    }
+    console.log(`mapping ${ ownerRinkebyAddr.toString() } to ${ ownerLoomAddr.toString() }`);
+    await mapperContract.addIdentityMappingAsync(ownerLoomAddr, ownerRinkebyAddr, signer);
+    console.log(`Mapped ${ ownerLoomAddr } to ${ ownerRinkebyAddr }`);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    if (client) {
+      client.disconnect();
+    }
+  }
+}
+
+async function getMainnetBalance(environment, ethKey) {
+  const account = loadMainnetAccount(environment, ethKey);
+  const address = account.account.address;
+  const balance = await account.web3.eth.getBalance(address);
+  return account.web3.utils.fromWei(balance, 'ether');
+}
+
+async function getMainnetCUEBalance(environment, ethKey) {
+  const account = loadMainnetAccount(environment, ethKey);
+  const address = account.account.address;
+  this.CUETokenInstance = new account.web3.eth.Contract(
+    CUEToken.abi,
+    CUEToken.networks[4].address,
+    { from: address }
+  );
+
+  const balance = await this.CUETokenInstance.methods.balanceOf(address).call({
+    from: address
+  });
+
+  return new BN(balance).div(coinMultiplier).toString();
+}
+
+async function withdrawCUE(environment, ethKey, loomKey, amount) {
+  let client;
+  try {
+    const mainnet = loadMainnetAccount(environment, ethKey);
+    const loom = loadLoomAccount(environment, loomKey);
+    client = loom.client;
+
+    const actualAmount = new BN(amount).mul(coinMultiplier);
+    const mainnetNetworkId = await mainnet.web3.eth.net.getId();
+    const loomNetworkId = await loom.web3.eth.net.getId();
+    const signature = await depositCoinToLoomGateway({
+      client: loom.client,
+      web3: loom.web3,
+      amount: actualAmount,
+      ownerLoomAddress: loom.account,
+      ownerMainnetAddress: mainnet.account.address,
+      tokenLoomAddress: CUETokenLoom.networks[loomNetworkId].address,
+      tokenMainnetAddress: CUEToken.networks[mainnetNetworkId].address,
+      timeout: 120000
+    });
+
+    const tx = await withdrawCoinFromMainnetGateway({
+      web3: mainnet.web3,
+      amount: actualAmount,
+      accountAddress: mainnet.account.address,
+      signature,
+      gas: 350000
+    });
+
+    console.log(`${ amount } tokens withdrawn from Ethereum Gateway.`);
+    console.log(`Mainnet tx hash: ${ tx.transactionHash }`);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    if (client) {
+      client.disconnect();
+    }
+  }
+}
+
+exports.mapAccounts = mapAccounts;
+exports.getMainnetBalance = getMainnetBalance;
+exports.getMainnetCUEBalance = getMainnetCUEBalance;
+exports.withdrawCUE = withdrawCUE;
