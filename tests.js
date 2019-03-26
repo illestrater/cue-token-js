@@ -45,7 +45,8 @@ function testEthereumPK() {
 
 const contract = new PlasmaContracts();
 async function loadPlasmaContracts() {
-  await contract.loadContract('extdev', clientKeyShare, serverKeyShare);
+  const privateKey = buildPrivateKeyShamirHex(clientKeyShare, serverKeyShare);
+  await contract.loadContract('extdev', privateKey);
   await contract._createCurrentUserAddress();
   console.log('LOOM CUE BALANCE', await contract.getBalance());
   // testBooking();

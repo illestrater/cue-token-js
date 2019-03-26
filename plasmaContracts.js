@@ -15,17 +15,17 @@ const CUEDisputeResolution = require('./abi/CUEDisputeResolution.json');
 const coinMultiplier = new BN(10).pow(new BN(18));
 
 exports.PlasmaContracts = class PlasmaContracts {
-  async loadContract(environment, clientKeyShare, serverKeyShare) {
+  async loadContract(environment, privateKey) {
     this.onEvent = null;
-    this._createClient(environment, clientKeyShare, serverKeyShare);
+    this._createClient(environment, privateKey);
     this._createCurrentUserAddress();
     this._createWebInstance();
     await this._createContractInstance();
   }
 
-  _createClient(environment, clientKeyShare, serverKeyShare) {
-    this.privateKey = buildPrivateKeyShamirHex(clientKeyShare, serverKeyShare);
-    this.publicKey = CryptoUtils.publicKeyFromPrivateKey(this.privateKey);
+  _createClient(environment, privateKey) {
+    this.privateKey = privateKey;
+    this.publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
 
     let writeUrl;
     let readUrl;

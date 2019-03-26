@@ -42,6 +42,7 @@ exports.GenerateMnemonic = generateMnemonic;
 exports.GenerateLoomPrivateKeyShamir = generateLoomPrivateKeyShamir;
 exports.GenerateEthereumPrivateKeyShamir = generateEthereumPrivateKeyShamir;
 exports.BuildPrivateKeyShamir = buildPrivateKeyShamir;
+exports.BuildPrivateKeyShamirHex = buildPrivateKeyShamir;
 
 exports.PlasmaContracts = plasma.PlasmaContracts;
 exports.MapAccounts = mapAccounts;
