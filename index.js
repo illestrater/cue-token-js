@@ -5,7 +5,7 @@ const hdkey = require('ethereumjs-wallet/hdkey');
 const shamir = require('secrets.js-grempe');
 const plasma = require('./plasmaContracts');
 
-const { toHexString, mnemonicToSeed, buildPrivateKeyShamir } = require('./utils');
+const { fromHexString, toHexString, mnemonicToSeed, buildPrivateKeyShamir } = require('./utils');
 const {
   mapAccounts, getMainnetBalance, getMainnetCUEBalance, withdrawCUE
 } = require('./tokenFunctions');
@@ -49,3 +49,4 @@ exports.MapAccounts = mapAccounts;
 exports.GetMainnetBalance = getMainnetBalance;
 exports.GetMainnetCUEBalance = getMainnetCUEBalance;
 exports.WithdrawCUE = withdrawCUE;
+exports.FromHexString = fromHexString;

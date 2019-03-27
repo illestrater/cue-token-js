@@ -25,7 +25,7 @@ exports.PlasmaContracts = class PlasmaContracts {
 
   _createClient(environment, privateKey) {
     this.privateKey = privateKey;
-    this.publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
+    this.publicKey = CryptoUtils.publicKeyFromPrivateKey(this.privateKey);
 
     let writeUrl;
     let readUrl;
