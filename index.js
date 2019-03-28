@@ -16,32 +16,41 @@ function generateMnemonic() {
   return bip39.generateMnemonic();
 }
 
-function generateLoomPrivateKeyShamir(mnemonic) {
+function getLoomPublicKeyFromMnemonic(mnemonic) {
   const seed = mnemonicToSeed(mnemonic);
   const privateKey = CryptoUtils.generatePrivateKeyFromSeed(seed);
   const publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
-  console.log('LOOM PUBLIC KEY', LocalAddress.fromPublicKey(publicKey).toString());
+  return LocalAddress.fromPublicKey(publicKey).toString();
+}
 
+function generateLoomPrivateKeyShamir(mnemonic) {
+  const seed = mnemonicToSeed(mnemonic);
+  const privateKey = CryptoUtils.generatePrivateKeyFromSeed(seed);
   const privateKeyHex = toHexString(privateKey);
   const shares = shamir.share(privateKeyHex, 2, 2);
   return shares;
+}
+
+function getEthereumPublicKeyFromMnemonic(mnemonic) {
+  const hdwallet = hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonic));
+  const walletHdPath = "m/44'/60'/0'/0/";
+  const wallet = hdwallet.derivePath(`${ walletHdPath }0`).getWallet();
+  return `0x${ wallet.getAddress().toString('hex') }`;
 }
 
 function generateEthereumPrivateKeyShamir(mnemonic) {
   const hdwallet = hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonic));
   const walletHdPath = "m/44'/60'/0'/0/";
   const wallet = hdwallet.derivePath(`${ walletHdPath }0`).getWallet();
-
   const privateKey = wallet.getPrivateKey().toString('hex');
-  const publicKey = `0x${ wallet.getAddress().toString('hex') }`;
-  console.log('ETHEREUM PUBLIC KEY', publicKey);
-
   const shares = shamir.share(privateKey, 2, 2);
   return shares;
 }
 
 exports.GenerateMnemonic = generateMnemonic;
+exports.GetLoomPublicKeyFromMnemonic = getLoomPublicKeyFromMnemonic;
 exports.GenerateLoomPrivateKeyShamir = generateLoomPrivateKeyShamir;
+exports.GetEthereumPublicKeyFromMnemonic = getEthereumPublicKeyFromMnemonic;
 exports.GenerateEthereumPrivateKeyShamir = generateEthereumPrivateKeyShamir;
 exports.BuildPrivateKeyShamir = buildPrivateKeyShamir;
 exports.BuildPrivateKeyShamirHex = buildPrivateKeyShamirHex;

@@ -5,8 +5,6 @@ const {
 const Web3 = require('web3');
 const BN = require('bn.js');
 
-const { buildPrivateKeyShamirHex } = require('./utils');
-
 const CUEToken = require('./abi/CUETokenLoom.json');
 const CUETips = require('./abi/CUETips.json');
 const CUEBookings = require('./abi/CUEBookings.json');
