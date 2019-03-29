@@ -6,7 +6,7 @@ const shamir = require('secrets.js-grempe');
 const plasma = require('./plasmaContracts');
 
 const {
-  toHexString, mnemonicToSeed, buildPrivateKeyShamir, buildPrivateKeyShamirHex
+  toHexString, fromHexString, mnemonicToSeed, buildPrivateKeyShamir, buildPrivateKeyShamirHex
 } = require('./utils');
 const {
   mapAccounts, getMainnetBalance, getMainnetCUEBalance, depositCUE, withdrawCUE, resumeWithdrawal
@@ -62,3 +62,4 @@ exports.GetMainnetCUEBalance = getMainnetCUEBalance;
 exports.DepositCUE = depositCUE;
 exports.WithdrawCUE = withdrawCUE;
 exports.ResumeWithdrawal = resumeWithdrawal;
+exports.FromHexString = fromHexString;

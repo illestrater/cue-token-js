@@ -221,13 +221,13 @@ async function getMainnetCUEBalance(environment, ethKey) {
   return new BN(balance).div(coinMultiplier).toString();
 }
 
-async function depositCUE(environment, ethKey, loomKey, amount) {
+async function depositCUE(environment, ethKey, amount) {
   try {
     const mainnet = loadMainnetAccount(environment, ethKey);
 
     const actualAmount = new BN(amount).mul(coinMultiplier);
       const tx = await depositCoinToMainnetGateway(
-        mainnet.web3, actualAmount, mainnet.address, 350000
+        mainnet.web3, actualAmount, mainnet.account.address, 350000
       );
       console.log(`${ amount } tokens deposited to Ethereum Gateway.`);
       console.log(`Rinkeby tx hash: ${ tx.transactionHash }`);
