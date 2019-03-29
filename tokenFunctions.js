@@ -12,6 +12,7 @@ const Gateway = require('./Gateway.json');
 const TransferGateway = Contracts.TransferGateway;
 const AddressMapper = Contracts.AddressMapper;
 
+const mainnetGatewayAddress = '0xb73C9506cb7f4139A4D6Ac81DF1e5b6756Fab7A2'; // rinkeby
 const loomGatewayAddress = '0xE754d9518bF4a9C63476891eF9Aa7D91c8236a5d'; // extdev
 const coinMultiplier = new BN(10).pow(new BN(18));
 
@@ -53,6 +54,19 @@ async function getLoomCoinContract(web3) {
     CUETokenLoom.abi,
     CUETokenLoom.networks[networkId].address,
   );
+}
+
+async function getMainnetCoinContract(web3js) {
+  const networkId = await web3js.eth.net.getId();
+  return new web3js.eth.Contract(
+    CUEToken.abi,
+    CUEToken.networks[networkId].address
+  );
+}
+
+async function getMainnetCoinContractAddress(web3js) {
+  const networkId = await web3js.eth.net.getId();
+  return CUEToken.networks[networkId].address;
 }
 
 async function getMainnetGatewayContract(web3) {
@@ -103,6 +117,37 @@ async function depositCoinToLoomGateway({
 
   const event = await receiveSignedWithdrawalEvent;
   return CryptoUtils.bytesToHexAddr(event.sig);
+}
+
+async function depositCoinToMainnetGateway(web3js, amount, ownerAccount, gas) {
+  const contract = await getMainnetCoinContract(web3js);
+  const contractAddress = await getMainnetCoinContractAddress(web3js);
+  const gateway  = await getMainnetGatewayContract(web3js);
+
+  let gasEstimate = await contract.methods
+    .approve(mainnetGatewayAddress, amount.toString())
+    .estimateGas({ from: ownerAccount });
+
+  if (gasEstimate === gas) {
+    throw new Error('Not enough enough gas, send more.');
+  }
+
+  await contract.methods
+    .approve(mainnetGatewayAddress, amount.toString())
+    .send({ from: ownerAccount, gas: gasEstimate });
+
+  gasEstimate = await gateway.methods
+    .depositERC20(amount.toString(), contractAddress)
+    .estimateGas({ from: ownerAccount, gas });
+      console.log(gasEstimate);
+
+  if (gasEstimate === gas) {
+    throw new Error('Not enough enough gas, send more.');
+  }
+
+  return gateway.methods
+    .depositERC20(amount.toString(), contractAddress)
+    .send({ from: ownerAccount, gas: gasEstimate })
 }
 
 async function withdrawCoinFromMainnetGateway({ web3, amount, accountAddress, signature, gas }) {
@@ -176,6 +221,21 @@ async function getMainnetCUEBalance(environment, ethKey) {
   return new BN(balance).div(coinMultiplier).toString();
 }
 
+async function depositCUE(environment, ethKey, loomKey, amount) {
+  try {
+    const mainnet = loadMainnetAccount(environment, ethKey);
+
+    const actualAmount = new BN(amount).mul(coinMultiplier);
+      const tx = await depositCoinToMainnetGateway(
+        mainnet.web3, actualAmount, mainnet.address, 350000
+      );
+      console.log(`${ amount } tokens deposited to Ethereum Gateway.`);
+      console.log(`Rinkeby tx hash: ${ tx.transactionHash }`);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 async function withdrawCUE(environment, ethKey, loomKey, amount) {
   let client;
   try {
@@ -216,7 +276,45 @@ async function withdrawCUE(environment, ethKey, loomKey, amount) {
   }
 }
 
+async function resumeWithdrawal(environment, ethKey, loomKey) {
+  let client;
+  try {
+    const mainnet = loadMainnetAccount(environment, ethKey);
+    const loom = loadLoomAccount(environment, loomKey);
+    client = loom.client;
+
+    const networkId = await mainnet.web3.eth.net.getId();
+    const myRinkebyCoinAddress = Address.fromString(`eth:${ CUEToken.networks[networkId].address }`);
+    const ownerAddr = Address.fromString(`${ loom.client.chainId }:${ loom.account }`);
+    const gatewayContract = await TransferGateway.createAsync(client, ownerAddr);
+    const receipt = await gatewayContract.withdrawalReceiptAsync(ownerAddr);
+    const signature = CryptoUtils.bytesToHexAddr(receipt.oracleSignature);
+
+    if (receipt.tokenContract.toString() === myRinkebyCoinAddress.toString()) {
+      const tx = await withdrawCoinFromMainnetGateway({
+        web3: mainnet.web3,
+        amount: receipt.tokenAmount,
+        accountAddress: mainnet.account.address,
+        signature,
+        gas: 350000
+      });
+      console.log(`${ receipt.tokenAmount.div(coinMultiplier).toString() } tokens withdrawn from Etheruem Gateway.`);
+      console.log(`Rinkeby tx hash: ${ tx.transactionHash }`);
+    } else {
+      console.log('Unsupported asset type!');
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    if (client) {
+      client.disconnect();
+    }
+  }
+}
+
 exports.mapAccounts = mapAccounts;
 exports.getMainnetBalance = getMainnetBalance;
 exports.getMainnetCUEBalance = getMainnetCUEBalance;
+exports.depositCUE = depositCUE;
 exports.withdrawCUE = withdrawCUE;
+exports.resumeWithdrawal = resumeWithdrawal;

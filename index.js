@@ -9,7 +9,7 @@ const {
   toHexString, mnemonicToSeed, buildPrivateKeyShamir, buildPrivateKeyShamirHex
 } = require('./utils');
 const {
-  mapAccounts, getMainnetBalance, getMainnetCUEBalance, withdrawCUE
+  mapAccounts, getMainnetBalance, getMainnetCUEBalance, depositCUE, withdrawCUE, resumeWithdrawal
 } = require('./tokenFunctions');
 
 function generateMnemonic() {
@@ -59,4 +59,6 @@ exports.PlasmaContracts = plasma.PlasmaContracts;
 exports.MapAccounts = mapAccounts;
 exports.GetMainnetBalance = getMainnetBalance;
 exports.GetMainnetCUEBalance = getMainnetCUEBalance;
+exports.DepositCUE = depositCUE;
 exports.WithdrawCUE = withdrawCUE;
+exports.ResumeWithdrawal = resumeWithdrawal;

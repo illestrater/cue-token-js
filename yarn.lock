@@ -6516,6 +6516,10 @@ sockjs@0.3.19:
     faye-websocket "^0.10.0"
     uuid "^3.0.1"
 
+solidity-to-abi@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/solidity-to-abi/-/solidity-to-abi-1.0.4.tgz#b5d1c095e7cb8ee402d5f7a49d2c2ff0e0d63a15"
+
 sort-keys@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/sort-keys/-/sort-keys-2.0.0.tgz#658535584861ec97d730d6cf41822e1f56684128"
