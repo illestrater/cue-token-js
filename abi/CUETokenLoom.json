@@ -1942,12 +1942,12 @@
         }
       },
       "links": {},
-      "address": "0xaC6FaADF29D66b755f2172CdF858Ec42f19d926F",
-      "transactionHash": "0xfe76572b33e9b6629bb794d7773cb421013d70944b733364e47a0072570a6952"
+      "address": "0x85b3aE871ec1ff9Ed96076831c4Bd70fB7438410",
+      "transactionHash": "0xb1962ee24dc0caad0081af3d887c040b823d254ab266416c729cfa51c7caa747"
     }
   },
   "schemaVersion": "3.0.3",
-  "updatedAt": "2019-03-25T06:10:02.329Z",
+  "updatedAt": "2019-03-30T21:37:52.865Z",
   "devdoc": {
     "methods": {
       "allowance(address,address)": {

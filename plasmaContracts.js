@@ -108,13 +108,13 @@ exports.PlasmaContracts = class PlasmaContracts {
     return new BN(balance).div(coinMultiplier).toString();
   }
 
-  async tip(address, amount) {
+  async tip(address, amount, room) {
     await this.CUETokenInstance.methods
       .approve(this.CUETipsInstance._address.toLowerCase(), new BN(amount).mul(coinMultiplier).toString())
       .send({ from: this.currentUserAddress.toLowerCase() });
 
     const response = await this.CUETipsInstance.methods
-      .tip(address.toLowerCase(), new BN(amount).mul(coinMultiplier).toString())
+      .tip(address.toLowerCase(), new BN(amount).mul(coinMultiplier).toString(), room)
       .send({ from: this.currentUserAddress.toLowerCase() });
 
     return response;
