@@ -9,7 +9,8 @@ const {
   toHexString, fromHexString, mnemonicToSeed, buildPrivateKeyShamir, buildPrivateKeyShamirHex
 } = require('./utils');
 const {
-  mapAccounts, getMainnetBalance, getMainnetCUEBalance, depositCUE, withdrawCUE, resumeWithdrawal
+  mapAccounts, getMainnetBalance, getMainnetCUEBalance,
+  depositCUE, withdrawCUE, resumeWithdrawal, sendCUE, sendETH
 } = require('./tokenFunctions');
 
 function generateMnemonic() {
@@ -47,7 +48,9 @@ function generateEthereumPrivateKeyShamir(mnemonic) {
   return shares;
 }
 
+exports.FromHexString = fromHexString;
 exports.GenerateMnemonic = generateMnemonic;
+exports.MnemonicToSeed = mnemonicToSeed;
 exports.GetLoomPublicKeyFromMnemonic = getLoomPublicKeyFromMnemonic;
 exports.GenerateLoomPrivateKeyShamir = generateLoomPrivateKeyShamir;
 exports.GetEthereumPublicKeyFromMnemonic = getEthereumPublicKeyFromMnemonic;
@@ -62,4 +65,5 @@ exports.GetMainnetCUEBalance = getMainnetCUEBalance;
 exports.DepositCUE = depositCUE;
 exports.WithdrawCUE = withdrawCUE;
 exports.ResumeWithdrawal = resumeWithdrawal;
-exports.FromHexString = fromHexString;
+exports.SendCUE = sendCUE;
+exports.SendETH = sendETH;

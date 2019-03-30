@@ -147,7 +147,7 @@ async function depositCoinToMainnetGateway(web3js, amount, ownerAccount, gas) {
 
   return gateway.methods
     .depositERC20(amount.toString(), contractAddress)
-    .send({ from: ownerAccount, gas: gasEstimate })
+    .send({ from: ownerAccount, gas: gasEstimate });
 }
 
 async function withdrawCoinFromMainnetGateway({ web3, amount, accountAddress, signature, gas }) {
@@ -221,95 +221,158 @@ async function getMainnetCUEBalance(environment, ethKey) {
   return new BN(balance).div(coinMultiplier).toString();
 }
 
-async function depositCUE(environment, ethKey, amount) {
-  try {
-    const mainnet = loadMainnetAccount(environment, ethKey);
+function depositCUE(environment, ethKey, amount) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const mainnet = loadMainnetAccount(environment, ethKey);
 
-    const actualAmount = new BN(amount).mul(coinMultiplier);
+      const actualAmount = new BN(amount).mul(coinMultiplier);
       const tx = await depositCoinToMainnetGateway(
         mainnet.web3, actualAmount, mainnet.account.address, 350000
       );
+
+      resolve(tx);
       console.log(`${ amount } tokens deposited to Ethereum Gateway.`);
       console.log(`Rinkeby tx hash: ${ tx.transactionHash }`);
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-async function withdrawCUE(environment, ethKey, loomKey, amount) {
-  let client;
-  try {
-    const mainnet = loadMainnetAccount(environment, ethKey);
-    const loom = loadLoomAccount(environment, loomKey);
-    client = loom.client;
-
-    const actualAmount = new BN(amount).mul(coinMultiplier);
-    const mainnetNetworkId = await mainnet.web3.eth.net.getId();
-    const loomNetworkId = await loom.web3.eth.net.getId();
-    const signature = await depositCoinToLoomGateway({
-      client: loom.client,
-      web3: loom.web3,
-      amount: actualAmount,
-      ownerLoomAddress: loom.account,
-      ownerMainnetAddress: mainnet.account.address,
-      tokenLoomAddress: CUETokenLoom.networks[loomNetworkId].address,
-      tokenMainnetAddress: CUEToken.networks[mainnetNetworkId].address,
-      timeout: 120000
-    });
-
-    const tx = await withdrawCoinFromMainnetGateway({
-      web3: mainnet.web3,
-      amount: actualAmount,
-      accountAddress: mainnet.account.address,
-      signature,
-      gas: 350000
-    });
-
-    console.log(`${ amount } tokens withdrawn from Ethereum Gateway.`);
-    console.log(`Mainnet tx hash: ${ tx.transactionHash }`);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    if (client) {
-      client.disconnect();
+    } catch (err) {
+      reject(err);
+      console.error(err);
     }
-  }
+  });
 }
 
-async function resumeWithdrawal(environment, ethKey, loomKey) {
-  let client;
-  try {
-    const mainnet = loadMainnetAccount(environment, ethKey);
-    const loom = loadLoomAccount(environment, loomKey);
-    client = loom.client;
+function withdrawCUE(environment, ethKey, loomKey, amount) {
+  return new Promise(async (resolve, reject) => {
+    let client;
+    try {
+      const mainnet = loadMainnetAccount(environment, ethKey);
+      const loom = loadLoomAccount(environment, loomKey);
+      client = loom.client;
 
-    const networkId = await mainnet.web3.eth.net.getId();
-    const myRinkebyCoinAddress = Address.fromString(`eth:${ CUEToken.networks[networkId].address }`);
-    const ownerAddr = Address.fromString(`${ loom.client.chainId }:${ loom.account }`);
-    const gatewayContract = await TransferGateway.createAsync(client, ownerAddr);
-    const receipt = await gatewayContract.withdrawalReceiptAsync(ownerAddr);
-    const signature = CryptoUtils.bytesToHexAddr(receipt.oracleSignature);
+      const actualAmount = new BN(amount).mul(coinMultiplier);
+      const mainnetNetworkId = await mainnet.web3.eth.net.getId();
+      const loomNetworkId = await loom.web3.eth.net.getId();
+      const signature = await depositCoinToLoomGateway({
+        client: loom.client,
+        web3: loom.web3,
+        amount: actualAmount,
+        ownerLoomAddress: loom.account,
+        ownerMainnetAddress: mainnet.account.address,
+        tokenLoomAddress: CUETokenLoom.networks[loomNetworkId].address,
+        tokenMainnetAddress: CUEToken.networks[mainnetNetworkId].address,
+        timeout: 120000
+      });
 
-    if (receipt.tokenContract.toString() === myRinkebyCoinAddress.toString()) {
       const tx = await withdrawCoinFromMainnetGateway({
         web3: mainnet.web3,
-        amount: receipt.tokenAmount,
+        amount: actualAmount,
         accountAddress: mainnet.account.address,
         signature,
         gas: 350000
       });
-      console.log(`${ receipt.tokenAmount.div(coinMultiplier).toString() } tokens withdrawn from Etheruem Gateway.`);
-      console.log(`Rinkeby tx hash: ${ tx.transactionHash }`);
-    } else {
-      console.log('Unsupported asset type!');
+
+      resolve(tx);
+      console.log(`${ amount } tokens withdrawn from Ethereum Gateway.`);
+      console.log(`Mainnet tx hash: ${ tx.transactionHash }`);
+    } catch (err) {
+      reject(err);
+      console.error(err);
+    } finally {
+      if (client) {
+        client.disconnect();
+      }
     }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    if (client) {
-      client.disconnect();
+  });
+}
+
+function resumeWithdrawal(environment, ethKey, loomKey) {
+  return new Promise(async (resolve, reject) => {
+    let client;
+    try {
+      const mainnet = loadMainnetAccount(environment, ethKey);
+      const loom = loadLoomAccount(environment, loomKey);
+      client = loom.client;
+
+      const networkId = await mainnet.web3.eth.net.getId();
+      const myRinkebyCoinAddress = Address.fromString(`eth:${ CUEToken.networks[networkId].address }`);
+      const ownerAddr = Address.fromString(`${ loom.client.chainId }:${ loom.account }`);
+      const gatewayContract = await TransferGateway.createAsync(client, ownerAddr);
+      const receipt = await gatewayContract.withdrawalReceiptAsync(ownerAddr);
+      const signature = CryptoUtils.bytesToHexAddr(receipt.oracleSignature);
+
+      if (receipt.tokenContract.toString() === myRinkebyCoinAddress.toString()) {
+        const tx = await withdrawCoinFromMainnetGateway({
+          web3: mainnet.web3,
+          amount: receipt.tokenAmount,
+          accountAddress: mainnet.account.address,
+          signature,
+          gas: 350000
+        });
+
+        resolve(tx);
+        console.log(`${ receipt.tokenAmount.div(coinMultiplier).toString() } tokens withdrawn from Etheruem Gateway.`);
+        console.log(`Rinkeby tx hash: ${ tx.transactionHash }`);
+      } else {
+        reject('Unsupported asset type!');
+        console.log('Unsupported asset type!');
+      }
+    } catch (err) {
+      reject(err);
+      console.error(err);
+    } finally {
+      if (client) {
+        client.disconnect();
+      }
     }
-  }
+  });
+}
+
+function sendCUE(environment, ethKey, address, amount) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const mainnet = loadMainnetAccount(environment, ethKey);
+      const contract = await getMainnetCoinContract(mainnet.web3);
+
+      const actualAmount = new BN(amount).mul(coinMultiplier);
+
+      const gasEstimate = await contract.methods
+        .transfer(address, actualAmount.toString())
+        .estimateGas({ from: mainnet.account.address });
+
+      const tx = await contract.methods
+        .transfer(address, actualAmount.toString())
+        .send({ from: mainnet.account.address, gas: gasEstimate });
+
+      resolve(tx);
+      console.log(`${ amount } tokens sent.`);
+      console.log(`tx hash: ${ tx.transactionHash }`);
+    } catch (err) {
+      reject(err);
+      console.error(err);
+    }
+  });
+}
+
+async function sendETH(environment, ethKey, address, amount) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const mainnet = loadMainnetAccount(environment, ethKey);
+
+      const tx = await mainnet.web3.eth.sendTransaction({
+        from: mainnet.account.address,
+        to: address,
+        gas: 350000,
+        value: mainnet.web3.utils.toWei(amount, 'ether')
+      });
+
+      resolve(tx);
+      console.log(`${ amount } ETH sent.`);
+      console.log(`tx hash: ${ tx.transactionHash }`);
+    } catch (err) {
+      reject(err);
+      console.error(err);
+    }
+  });
 }
 
 exports.mapAccounts = mapAccounts;
@@ -318,3 +381,5 @@ exports.getMainnetCUEBalance = getMainnetCUEBalance;
 exports.depositCUE = depositCUE;
 exports.withdrawCUE = withdrawCUE;
 exports.resumeWithdrawal = resumeWithdrawal;
+exports.sendCUE = sendCUE;
+exports.sendETH = sendETH;
