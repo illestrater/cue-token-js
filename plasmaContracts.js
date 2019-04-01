@@ -52,7 +52,7 @@ exports.PlasmaContracts = class PlasmaContracts {
   }
 
   _setupMiddlewareFn(client, publicKey, privateKey) {
-    return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)]
+    return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)];
   }
 
   _createWebInstance() {
