@@ -51,7 +51,7 @@ exports.PlasmaContracts = class PlasmaContracts {
     this.currentUserAddress = LocalAddress.fromPublicKey(this.publicKey).toString();
   }
 
-  _setupMiddlewareFn = (client, privateKey) => {
+  _setupMiddlewareFn(client, privateKey) {
     const publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
     return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)]
   }
