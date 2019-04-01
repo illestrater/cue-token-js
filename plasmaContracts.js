@@ -1,5 +1,5 @@
 const {
-  Client, LocalAddress, CryptoUtils, LoomProvider
+  Client, LocalAddress, CryptoUtils, LoomProvider, CachedNonceTxMiddleware, SignedTxMiddleware
 } = require('loom-js');
 
 const Web3 = require('web3');
@@ -51,8 +51,18 @@ exports.PlasmaContracts = class PlasmaContracts {
     this.currentUserAddress = LocalAddress.fromPublicKey(this.publicKey).toString();
   }
 
+  _setupMiddlewareFn(client, publicKey, privateKey) {
+    return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)]
+  }
+
   _createWebInstance() {
-    this.web3 = new Web3(new LoomProvider(this.client, this.privateKey));
+    this.web3 = new Web3(
+      new LoomProvider(
+        this.client,
+        this.privateKey,
+        this._setupMiddlewareFn(this.client, this.publicKey, this.privateKey)
+      )
+    );
   }
 
   async _createContractInstance() {
