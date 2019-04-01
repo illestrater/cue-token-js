@@ -51,8 +51,9 @@ exports.PlasmaContracts = class PlasmaContracts {
     this.currentUserAddress = LocalAddress.fromPublicKey(this.publicKey).toString();
   }
 
-  _setupMiddlewareFn(client, publicKey, privateKey) {
-    return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)];
+  _setupMiddlewareFn = (client, privateKey) => {
+    const publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
+    return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)]
   }
 
   _createWebInstance() {
@@ -60,7 +61,7 @@ exports.PlasmaContracts = class PlasmaContracts {
       new LoomProvider(
         this.client,
         this.privateKey,
-        this._setupMiddlewareFn(this.client, this.publicKey, this.privateKey)
+        this._setupMiddlewareFn
       )
     );
   }
