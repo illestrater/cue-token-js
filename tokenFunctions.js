@@ -285,6 +285,35 @@ function withdrawCUE(environment, ethKey, loomKey, amount) {
   });
 }
 
+function pendingWithdrawal(environment, ethKey, loomKey) {
+  return new Promise(async (resolve, reject) => {
+    let client;
+    try {
+      const mainnet = loadMainnetAccount(environment, ethKey);
+      const loom = loadLoomAccount(environment, loomKey);
+      client = loom.client;
+
+      const networkId = await mainnet.web3.eth.net.getId();
+      const myRinkebyCoinAddress = Address.fromString(`eth:${ CUEToken.networks[networkId].address }`);
+      const ownerAddr = Address.fromString(`${ loom.client.chainId }:${ loom.account }`);
+      const gatewayContract = await TransferGateway.createAsync(client, ownerAddr);
+      const receipt = await gatewayContract.withdrawalReceiptAsync(ownerAddr);
+      if (receipt) {
+        resolve(receipt.value.div(coinMultiplier).toString());
+      } else {
+        resolve(null);
+      }
+    } catch (err) {
+      reject(err);
+      console.error(err);
+    } finally {
+      if (client) {
+        client.disconnect();
+      }
+    }
+  });
+}
+
 function resumeWithdrawal(environment, ethKey, loomKey) {
   return new Promise(async (resolve, reject) => {
     let client;
@@ -381,5 +410,6 @@ exports.getMainnetCUEBalance = getMainnetCUEBalance;
 exports.depositCUE = depositCUE;
 exports.withdrawCUE = withdrawCUE;
 exports.resumeWithdrawal = resumeWithdrawal;
+exports.pendingWithdrawal = pendingWithdrawal;
 exports.sendCUE = sendCUE;
 exports.sendETH = sendETH;

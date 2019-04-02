@@ -34,8 +34,8 @@ exports.PlasmaContracts = class PlasmaContracts {
       readUrl = 'ws://127.0.0.1:46658/queryws';
       networkId = 'default';
     } else if (environment === 'extdev') {
-      writeUrl = 'ws://extdev-plasma-us1.dappchains.com:80/websocket';
-      readUrl = 'ws://extdev-plasma-us1.dappchains.com:80/queryws';
+      writeUrl = 'wss://extdev-plasma-us1.dappchains.com:80/websocket';
+      readUrl = 'wss://extdev-plasma-us1.dappchains.com:80/queryws';
       networkId = 'extdev-plasma-us1';
     }
 
@@ -53,7 +53,7 @@ exports.PlasmaContracts = class PlasmaContracts {
 
   _setupMiddlewareFn(client, privateKey) {
     const publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
-    return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)]
+    return [new CachedNonceTxMiddleware(publicKey, client), new SignedTxMiddleware(privateKey)];
   }
 
   _createWebInstance() {

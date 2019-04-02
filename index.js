@@ -9,7 +9,7 @@ const {
   toHexString, fromHexString, mnemonicToSeed, buildPrivateKeyShamir, buildPrivateKeyShamirHex
 } = require('./utils');
 const {
-  mapAccounts, getMainnetBalance, getMainnetCUEBalance,
+  mapAccounts, getMainnetBalance, getMainnetCUEBalance, pendingWithdrawal,
   depositCUE, withdrawCUE, resumeWithdrawal, sendCUE, sendETH
 } = require('./tokenFunctions');
 
@@ -65,5 +65,6 @@ exports.GetMainnetCUEBalance = getMainnetCUEBalance;
 exports.DepositCUE = depositCUE;
 exports.WithdrawCUE = withdrawCUE;
 exports.ResumeWithdrawal = resumeWithdrawal;
+exports.PendingWithdrawal = pendingWithdrawal;
 exports.SendCUE = sendCUE;
 exports.SendETH = sendETH;
