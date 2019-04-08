@@ -34,8 +34,8 @@ exports.PlasmaContracts = class PlasmaContracts {
       readUrl = 'ws://127.0.0.1:46658/queryws';
       networkId = 'default';
     } else if (environment === 'extdev') {
-      writeUrl = 'wss://extdev-plasma-us1.dappchains.com:80/websocket';
-      readUrl = 'wss://extdev-plasma-us1.dappchains.com:80/queryws';
+      writeUrl = 'ws://extdev-plasma-us1.dappchains.com:80/websocket';
+      readUrl = 'ws://extdev-plasma-us1.dappchains.com:80/queryws';
       networkId = 'extdev-plasma-us1';
     }
 

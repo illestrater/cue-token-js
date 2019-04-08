@@ -28,8 +28,8 @@ function loadLoomAccount(environment, privateKey) {
   const publicKey = CryptoUtils.publicKeyFromPrivateKey(privateKey);
   const client = new Client(
     environment === 'mainnet' ? 'loomv2b' : 'extdev-plasma-us1',
-    'wss://extdev-plasma-us1.dappchains.com/websocket',
-    'wss://extdev-plasma-us1.dappchains.com/queryws'
+    'ws://extdev-plasma-us1.dappchains.com/websocket',
+    'ws://extdev-plasma-us1.dappchains.com/queryws'
   );
 
   client.txMiddleware = [
